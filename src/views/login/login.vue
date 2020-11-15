@@ -5,17 +5,20 @@
         <!-- /导航栏 -->
 
         <!-- 登录表单 -->
-        <van-cell-group>
-            <van-field v-model="user.mobile" icon-prefix="app" left-icon="shouji" placeholder="请输入手机号" />
-            <van-field v-model="user.code" clearable icon-prefix="app" left-icon="yanzhengma" placeholder="请输入验证码">
+        <van-form @submit="onLogin" :show-error="false" :show-error-message="false" @failed="onFailed" validate-first>
+            <van-field v-model="user.mobile" icon-prefix="app" left-icon="shouji" placeholder="请输入手机号"
+                :rules="formRules.mobile" />
+            <van-field v-model="user.code" clearable icon-prefix="app" left-icon="yanzhengma" placeholder="请输入验证码"
+                :rules="formRules.code">
                 <template #button>
                     <van-button class="send-btn" size="mini" round>发送验证码</van-button>
                 </template>
             </van-field>
-        </van-cell-group>
-        <div class="login-btn-wrap">
-            <van-button class="login-btn" type="info" block @click=onLogin>登录</van-button>
-        </div>
+
+            <div class="login-btn-wrap">
+                <van-button class="login-btn" type="info" block>登录</van-button>
+            </div>
+        </van-form>
         <!-- /登录表单 -->
     </div>
 </template>
@@ -24,9 +27,7 @@
     import {
         login
     } from '@/api/user.js'
-    import {
-        Toast
-    } from 'vant'
+
     export default {
         name: 'LoginIndex',
         components: {},
@@ -36,7 +37,27 @@
                 user: {
                     mobile: '13911111111', // 手机号
                     code: '246810' // 验证码
-                }
+                },
+                formRules: {
+                    mobile: [{
+                            required: true,
+                            message: '请输入手机号'
+                        },
+                        {
+                            pattern: /^1[3|5|7|8|9]\d{9}$/,
+                            message: '手机号格式错误'
+                        }
+                    ],
+                    code: [{
+                            required: true,
+                            message: '请输入验证码'
+                        },
+                        {
+                            pattern: /^\d{6}$/,
+                            message: '验证码格式错误'
+                        }
+                    ]
+                },
 
             }
         },
@@ -44,21 +65,34 @@
         watch: {},
         methods: {
             async onLogin() {
-                Toast.loading({
+                this.$toast.loading({
                     message: '加载中...',
                     forbidClick: true,
                     duration: 0, // 持续时间，0表示持续展示不停止
                 })
                 try {
-                    const res = await login(this.user)
-                    console.log(res)
-                    Toast.success("登录成功")
+                    const {
+                        data
+                    } = await login(this.user)
+                    // console.log(data)
+                    this.$toast.success("登录成功")
+                    this.$store.commit('setUser', data.data)
+                    // 表示将数据data.data取名为setUser传入store中
                 } catch (error) {
                     console.log('失败', error)
-                    Toast.fail("手机号或者验证码错误")
+                    this.$toast.fail("手机号或者验证码错误")
                 }
 
-            }
+            },
+            onFailed(error) {
+                if (error.errors[0]) {
+                    this.$toast({
+                        message: error.errors[0].message, // 提示消息
+                        position: 'top' // 防止手机键盘太高看不见提示消息
+                    })
+                }
+            },
+
         },
         created() {},
         mounted() {},
